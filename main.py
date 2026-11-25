@@ -15,11 +15,12 @@ ROAST = (
 
 OUTPUT_PATH = "/output/entry.txt"
 MAX_CHARS = 200
+MIN_CHARS = 1
 
 
 def check_line(line):
     """Return the line if it passes the gate, else raise ValueError."""
-    if not line or not line.strip():
+    if len(line) < MIN_CHARS or not line.strip():
         raise ValueError("entry must not be empty or only whitespace")
     if len(line) > MAX_CHARS:
         raise ValueError(
@@ -29,13 +30,21 @@ def check_line(line):
 
 
 def write_entry(path=OUTPUT_PATH):
-    """Write the roast line to path, creating its directory if needed."""
+    """Write the roast line to path, creating its directory if needed.
+
+    Reads the file back and refuses to report success unless the bytes
+    on disk match the line exactly, so a truncated or altered write
+    is caught here instead of at judging time.
+    """
     line = check_line(ROAST)
     folder = os.path.dirname(path)
     if folder:
         os.makedirs(folder, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as handle:
         handle.write(line)
+    written = open(path, encoding="utf-8", newline="").read()
+    if written != line:
+        raise ValueError("written entry does not match the roast line")
     return path, len(line)
 
 
